@@ -11,7 +11,9 @@ const verifyToken = (req, res, next) => {
         console.log(process.env.SECRET_KEY)
         const verified = jwt.verify(token.replace("Bearer ", ""), process.env.SECRET_KEY); 
         req.user = verified; 
+        console.log('Salom')
         console.log(verified)
+        console.log('Salom')
         next();
     } catch (err) {
         return res.status(403).json({ message: "Noto‘g‘ri yoki eskirgan token" });

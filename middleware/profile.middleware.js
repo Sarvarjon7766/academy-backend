@@ -6,6 +6,7 @@ class Profile{
 	async getOne(req,res){
 		try {
 			const user = req.user
+			console.log(user)
 			const id = new mongoose.Types.ObjectId(user.id)
 			console.log(user)
 			if(user.role == 1){
