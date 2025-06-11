@@ -101,7 +101,7 @@ class StatistiksService {
 					teacherStats
 				})
 			}
-			console.log(result[1].teacherStats)
+			// console.log(result[1].teacherStats)
 
 			return {
 				success: true,

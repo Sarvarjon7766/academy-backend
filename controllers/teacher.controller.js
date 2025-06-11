@@ -184,6 +184,18 @@ class TeacherController{
 			res.status(500).json({message:error,success:false})
 		}
 	}
+	async TeacherSelery(req,res){
+		try {
+			
+			const teachers = await teacherService.TeacherSelery(req.query)
+			if(teachers.success){
+				return res.status(200).json(teachers)
+			}
+			return res.status(400).json(teachers.message)
+		} catch (error) {
+			res.status(500).json({message:error,success:false})
+		}
+	}
 }
 
 module.exports = new TeacherController()

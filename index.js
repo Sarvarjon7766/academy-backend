@@ -32,6 +32,10 @@ const corsOptions = {
 
 
 app.use(cors(corsOptions))
+// app.use(cors({
+//   origin: true,
+//   credentials: true
+// }));
 app.use('/static', express.static('static'))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())

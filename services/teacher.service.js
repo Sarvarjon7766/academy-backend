@@ -4,6 +4,8 @@ const { default: mongoose } = require('mongoose')
 const SubjectModel = require('../modules/subject.model')
 const TeacherSubjects = require('./teacherSubjects.service')
 const groupModel = require('../modules/group.model')
+const attandanceModel = require('../modules/attandance.model')
+const studentModel = require('../modules/student.model')
 
 
 class TeacherService {
@@ -35,7 +37,7 @@ class TeacherService {
 			return { success: false, message: "Server Error" }
 		}
 	}
-	async AddSubjects({teacherId, subjectIds}) {
+	async AddSubjects({ teacherId, subjectIds }) {
 		try {
 			const teacher = await teacherModel.findById(teacherId)
 			if (!teacher) {
@@ -307,6 +309,147 @@ class TeacherService {
 			throw new Error(error.message)
 		}
 	}
+	async TeacherSelery() {
+		try {
+			const teachers = await teacherModel.find({isAdmin:false})
+			const result = []
+
+			for (const teacher of teachers) {
+				const subjectEntries = []
+
+				for (const subjectId of teacher.subjects) {
+					// Guruh va fan nomi bo‘yicha olish
+					const groups = await groupModel.find({
+						teacher: teacher._id,
+						subject: subjectId
+					})
+						.populate({ path: 'students', select: 'fullName' })
+						.populate({ path: 'subject', select: 'subjectName' })
+
+					const groupData = groups.map(group => ({
+						groupId: group._id.toString(),
+						groupName: group.groupName,
+						students: group.students.map(s => ({
+							studentId: s._id.toString(),
+							fullName: s.fullName
+						}))
+					}))
+
+					if (groupData.length) {
+						subjectEntries.push({
+							subjectId: subjectId.toString(),
+							subjectName: groups[0].subject?.subjectName || 'Noma’lum fan',
+							groups: groupData
+						})
+					}
+				}
+
+				result.push({
+					teacherId: teacher._id.toString(),
+					teacherName: teacher.fullName,
+					subjects: subjectEntries
+				})
+			}
+
+			return { success: true, data: result }
+
+		} catch (err) {
+			console.error(err)
+			return { success: false, message: 'Ichki xatolik yuz berdi' }
+		}
+	}
+
+	async TeacherStudent({ year, month }) {
+		try {
+			const startDate = new Date(year, month - 1, 1)
+			const endDate = new Date(year, month, 1)
+
+			const teachers = await teacherModel.find()
+			const groups = await groupModel.find().populate("students")
+			const allAttendance = await attandanceModel.find({
+				date: { $gte: startDate, $lt: endDate }
+			})
+
+			const result = []
+
+			for (const teacher of teachers) {
+				const teacherSubjectIds = teacher.subjects.map(id => id.toString())
+
+				const teacherGroups = groups.filter(group =>
+					group.teacher.toString() === teacher._id.toString() &&
+					group.subject &&
+					teacherSubjectIds.includes(group.subject.toString())
+				)
+
+				const teacherStats = []
+
+				for (const group of teacherGroups) {
+					const groupId = group._id.toString()
+					const subjectId = group.subject.toString()
+
+					const totalLessons = await attandanceModel.distinct('date', {
+						groupId,
+						date: { $gte: startDate, $lt: endDate }
+					}).then(dates => dates.length)
+
+					for (const studentId of group.students) {
+						const student = await studentModel.findById(studentId)
+
+						if (!student) continue
+						console.log(student)
+
+						const subjectData = student.main_subjects.find(
+							s => s.subjectId.toString() === subjectId.toString()
+						)
+
+						if (!subjectData || !subjectData.price) continue
+
+						const price = subjectData.price
+
+						const attendedLessons = allAttendance.filter(a =>
+							a.groupId?.toString() === groupId &&
+							a.studentId?.toString() === studentId.toString() &&
+							a.Status === "Kelgan"
+						).length
+
+						const oneLessonPrice = price / totalLessons || 0
+						const studentPayment = Math.round(attendedLessons * oneLessonPrice)
+
+						teacherStats.push({
+							studentId: studentId.toString(),
+							groupId,
+							subjectId,
+							totalLessons,
+							attendedLessons,
+							fullSubjectPrice: price,
+							calculatedPayment: studentPayment
+						})
+					}
+				}
+
+				result.push({
+					teacherId: teacher._id,
+					totalStudents: teacherStats.length,
+					teacherStats
+				})
+			}
+			console.log(result[1].teacherStats)
+
+			// ✅ RETURN outside the for-loop
+			return {
+				success: true,
+				data: result
+			}
+		} catch (error) {
+			console.error("Xatolik:", error)
+			return {
+				success: false,
+				message: "Ichki xatolik yuz berdi"
+			}
+		}
+	}
+
+
 }
 
 
