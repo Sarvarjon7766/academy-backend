@@ -14,6 +14,8 @@ class RegisterController{
 	async Login(req,res){
 		try {
 			const {login,password} = req.body
+			console.log(login)
+			console.log(password)
 			
 			if(login && password){
 				const data = await RegisterService.Login(login,password)

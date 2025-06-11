@@ -28,7 +28,7 @@ class RegisterService{
 				return {success:false,message:"Foydalanuvchi topilmadi"}
 			}
 			if(user.password === password && user.isActive){
-				const token = jwt.sign({id:user._id,role:user.role,isActive:user.isAvtive},process.env.SECRET_KEY,{expiresIn:'1h'})
+				const token = jwt.sign({id:user._id,role:user.role,isActive:user.isActive},process.env.SECRET_KEY,{expiresIn:'1h'})
 				return {success:true,token,message:"Registratsiya qiluvchi muvafaqiyatli login bo'ldi"}
 			}
 		return {success:false,message:"Login yoki parol xato"}
