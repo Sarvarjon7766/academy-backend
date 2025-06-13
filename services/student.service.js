@@ -732,7 +732,7 @@ class StudentService {
 
 	async getSunday() {
 		try {
-			const data = await studentModel.find({ sunday: true })
+			const data = await studentModel.find()
 
 			const today = new Date()
 			today.setHours(0, 0, 0, 0)

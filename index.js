@@ -18,24 +18,24 @@ runCronJob()
 
 const app = express()
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || origin === process.env.CLIENT_URL) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}
-
-
-app.use(cors(corsOptions))
-// app.use(cors({
-//   origin: true,
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     if (!origin || origin === process.env.CLIENT_URL) {
+//       callback(null, true)
+//     } else {
+//       callback(new Error('Not allowed by CORS'))
+//     }
+//   },
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 //   credentials: true
-// }));
+// }
+
+
+// app.use(cors(corsOptions))
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use('/static', express.static('static'))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())

@@ -309,31 +309,84 @@ class TeacherService {
 			throw new Error(error.message)
 		}
 	}
-	async TeacherSelery() {
+	async TeacherSelery({ year, month }) {
 		try {
-			const teachers = await teacherModel.find({isAdmin:false})
+			const newYear = Number(year)
+			const newMonth = Number(month)
+
+			// Yaroqli yil va oy tekshiruvini kiritamiz
+			if (
+				isNaN(newYear) || isNaN(newMonth) ||
+				newYear < 2000 || newYear > 2100 ||
+				newMonth < 1 || newMonth > 12
+			) {
+				return { success: false, message: "Yil yoki oy noto‘g‘ri kiritilgan." }
+			}
+
+			const startOfMonth = new Date(newYear, newMonth - 1, 1)
+			const endOfMonth = new Date(newYear, newMonth, 0, 23, 59, 59)
+
+			const teachers = await teacherModel.find({ isAdmin: false })
 			const result = []
 
 			for (const teacher of teachers) {
 				const subjectEntries = []
 
 				for (const subjectId of teacher.subjects) {
-					// Guruh va fan nomi bo‘yicha olish
 					const groups = await groupModel.find({
 						teacher: teacher._id,
 						subject: subjectId
 					})
-						.populate({ path: 'students', select: 'fullName' })
+						.populate({ path: 'students', select: 'fullName main_subjects additionalSubjects' })
 						.populate({ path: 'subject', select: 'subjectName' })
 
-					const groupData = groups.map(group => ({
-						groupId: group._id.toString(),
-						groupName: group.groupName,
-						students: group.students.map(s => ({
-							studentId: s._id.toString(),
-							fullName: s.fullName
-						}))
-					}))
+					const groupData = await Promise.all(
+						groups.map(async (group) => {
+							const studentsWithAttendance = await Promise.all(
+								group.students.map(async (s) => {
+									const attendanceRecords = await attandanceModel.find({
+										studentId: s._id,
+										groupId: group._id,
+										date: { $gte: startOfMonth, $lte: endOfMonth },
+									}).select('date Status score sunday -_id')
+
+									const mainSubject = s.main_subjects.find(
+										(subj) => subj.groupId.toString() === group._id.toString()
+									)
+
+									const additionalSubject = s.additionalSubjects.find(
+										(subj) => subj.groupId.toString() === group._id.toString()
+									)
+
+									const price = mainSubject?.price ?? additionalSubject?.price ?? 0
+
+									return {
+										studentId: s._id.toString(),
+										fullName: s.fullName,
+										attendance: attendanceRecords,
+										price,
+									}
+								})
+							)
+
+							// totalDays hisoblash — eng ko'p qatnashilgan darslar soni
+							let totalDays = 0
+
+							for (const student of studentsWithAttendance) {
+								const count = student.attendance.filter(
+									(a) => a.Status === "Kelgan" || a.Status === "Kelmagan"
+								).length
+
+								if (count > totalDays) totalDays = count
+							}
+							return {
+								groupId: group._id.toString(),
+								groupName: group.groupName,
+								students: studentsWithAttendance,
+								totalDays,
+							}
+						})
+					)
 
 					if (groupData.length) {
 						subjectEntries.push({
@@ -347,17 +400,18 @@ class TeacherService {
 				result.push({
 					teacherId: teacher._id.toString(),
 					teacherName: teacher.fullName,
+					share_of_salary: teacher.share_of_salary / 100,
 					subjects: subjectEntries
 				})
 			}
 
 			return { success: true, data: result }
-
 		} catch (err) {
 			console.error(err)
 			return { success: false, message: 'Ichki xatolik yuz berdi' }
 		}
 	}
+
 
 	async TeacherStudent({ year, month }) {
 		try {
