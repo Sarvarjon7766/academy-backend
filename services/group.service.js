@@ -215,7 +215,6 @@ class GroupService {
 					students: studentDetails.filter(Boolean) // null studentlar chiqib ketadi
 				}
 			}))
-			console.log(enrichedGroups)
 			if (enrichedGroups.length > 0) {
 				return { success: true, groups: enrichedGroups }
 			} else {

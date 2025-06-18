@@ -1,6 +1,6 @@
 const express = require('express')
 const verifyToken = require('../middleware/verifyToken.middleware')
-const {create,teacherSubjectGroup,groupForStudents,getGroups,teacherGroups,CountStudent,getStudents,getGrouptoStudents,GetSubject,RelocationGroup} = require('../controllers/group.controller')
+const {create,teacherSubjectGroup,groupForStudents,getGroups,teacherGroups,CountStudent,getStudents,getGrouptoStudents,GetSubject,RelocationGroup,getTeacherGroup} = require('../controllers/group.controller')
 const router = express.Router()
 
 
@@ -17,6 +17,7 @@ router.get('/getStudent/:subjectId',verifyToken,getStudents)
 router.get('/getSubject/:groupId',verifyToken,GetSubject)
 router.post('/relocation-group/:groupId/:studentId/:selectedGroupId',verifyToken,RelocationGroup)
 router.get('/getGroupToStudent/:subjectId',verifyToken,getGrouptoStudents)
+router.get('/get-techer-group',getTeacherGroup)
 
 
 

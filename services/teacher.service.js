@@ -215,7 +215,7 @@ class TeacherService {
 
 	async getAll() {
 		try {
-			const teachers = await teacherModel.find().populate('subjects', 'subjectName')
+			const teachers = await teacherModel.find({isAdmin:false}).populate('subjects', 'subjectName')
 			if (!teachers || teachers.length === 0) {
 				return { success: false, message: "teacherlar topilmadi" }
 			}

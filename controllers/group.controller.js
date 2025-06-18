@@ -128,6 +128,22 @@ class GroupController {
 			return res.status(500).json(error)
 		}
 	}
+	async getTeacherGroup(req, res) {
+		try {
+			const {subjectId,teacherId} = req.query
+			const tId = new mongoose.Types.ObjectId(teacherId)
+			const sId = new mongoose.Types.ObjectId(subjectId)
+			const data = await groupService.getGrouptoStudents(tId, sId)
+			if (data.success) {
+				return res.status(200).json(data)
+			} else {
+				return res.status(404).json(data)
+			}
+
+		} catch (error) {
+			return res.status(500).json(error)
+		}
+	}
 
 	async GetSubject(req,res){
 		try {

@@ -8,7 +8,7 @@ const fileUpload = require('express-fileupload')
 //cron
 const runCronJob = require('./helper/corn.message')
 // Routerlarni chaqirish
-const { studentrouter, teacherrouter, applicationrouter, adsrouter, messagerouter, subjectrouter, addsubjectrouter, hostelrouter, defaultrouter, registerrouter, transportrouter, paymentrouter, attandancerouter, grouprouter, productrouter, profilerouter, roomsrouter, statistiksrouter, employerrouter } = require('./routes')
+const { studentrouter, teacherrouter, applicationrouter, adsrouter, messagerouter, subjectrouter, addsubjectrouter, hostelrouter, defaultrouter, registerrouter, transportrouter, paymentrouter, attandancerouter, grouprouter, productrouter, profilerouter, roomsrouter, statistiksrouter, employerrouter,teacherattandancerouter } = require('./routes')
 
 
 // Environment variables
@@ -18,24 +18,24 @@ runCronJob()
 
 const app = express()
 
-// const corsOptions = {
-//   origin: function (origin, callback) {
-//     if (!origin || origin === process.env.CLIENT_URL) {
-//       callback(null, true)
-//     } else {
-//       callback(new Error('Not allowed by CORS'))
-//     }
-//   },
-//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-//   credentials: true
-// }
-
-
-// app.use(cors(corsOptions))
-app.use(cors({
-  origin: true,
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || origin === process.env.CLIENT_URL) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
-}));
+}
+
+
+app.use(cors(corsOptions))
+// app.use(cors({
+//   origin: true,
+//   credentials: true
+// }));
 app.use('/static', express.static('static'))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
@@ -46,6 +46,7 @@ app.use(fileUpload()) // Fayl yuklash middleware'ini qo'shish
 
 // Routerlarni ulash
 app.use('/api/statistics', statistiksrouter)
+app.use('/api/teacher-attandance', teacherattandancerouter)
 app.use('/api/student', studentrouter)
 app.use('/api/teacher', teacherrouter)
 app.use('/api/employer', employerrouter)
