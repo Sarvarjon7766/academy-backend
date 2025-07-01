@@ -3,7 +3,7 @@ const TeacherAttandanceService = require('../services/TeacherAttandance.service'
 class TeacherAttandanceController {
 	async attandanceAdd(req, res) {
 		try {
-			const data = req.body; // Agar siz GET orqali qabul qilayotgan bo‘lsangiz, bu to‘g‘ri
+			const data = req.body; 
 			const attandance = await TeacherAttandanceService.attandanceAdd(data);
 
 			if (attandance.success) {
