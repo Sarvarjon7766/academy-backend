@@ -123,40 +123,59 @@ class TeacherService {
 	async CheckSalary(id) {
 		try {
 			const teacher = await teacherModel.findById(id)
-			const salary = { salary: teacher.salary, share_of_salary: teacher.share_of_salary }
-			return { success: true, message: "Oylik maoshlar", salary }
+
+			if (!teacher || !teacher.salaryHistory || teacher.salaryHistory.length === 0) {
+				return { success: true, message: "Hozircha oylik mavjud emas", salary: { salary: 0, share_of_salary: 0 } }
+			}
+
+			const sorted = teacher.salaryHistory.sort((a, b) => new Date(b.from) - new Date(a.from))
+			const latest = sorted[0]
+
+			return {
+				success: true,
+				message: "Eng so‘nggi oylik ma'lumoti",
+				salary: { salary: latest.salary, share_of_salary: latest.share_of_salary }
+			}
 		} catch (error) {
 			console.error(error)
 			return { success: false, message: "Server xatoligi" }
 		}
 	}
+
+
+
+
+
 	async AddSalary(data) {
 		try {
 			const teacher = await teacherModel.findById(new mongoose.Types.ObjectId(data.teacherId))
+
 			if (!teacher) {
 				return { success: false, message: "O'qituvchi topilmadi" }
 			}
 
-			const updatedTeacher = await teacherModel.findByIdAndUpdate(
-				new mongoose.Types.ObjectId(data.teacherId),
-				{
-					salary: data.salary,
-					share_of_salary: data.share_of_salary
-				},
-				{ new: true }
-			)
-
-			if (updatedTeacher) {
-				console.log(updatedTeacher)
-				return { success: true, message: "O'qituvchining oyligi qo'shildi" }
+			const newEntry = {
+				from: new Date(),
+				salary: data.salary,
+				share_of_salary: data.share_of_salary
 			}
 
-			return { success: false, message: "O'qituvchining oyligini qo'shishda xatolik" }
+			teacher.salaryHistory = teacher.salaryHistory || []
+			teacher.salaryHistory.push(newEntry)
+
+			await teacher.save()
+
+			return { success: true, message: "O'qituvchining oyligi tarixga qo‘shildi" }
+
 		} catch (error) {
 			console.error(error)
 			return { success: false, message: "Server xatoligi" }
 		}
 	}
+
+
+
+
 	async getTeacher(id) {
 		try {
 			const objectId = new mongoose.Types.ObjectId(id)
@@ -217,7 +236,7 @@ class TeacherService {
 
 	async getAll() {
 		try {
-			const teachers = await teacherModel.find({isAdmin:false}).populate('subjects', 'subjectName')
+			const teachers = await teacherModel.find({ isAdmin: false }).populate('subjects', 'subjectName')
 			if (!teachers || teachers.length === 0) {
 				return { success: false, message: "teacherlar topilmadi" }
 			}
@@ -311,164 +330,201 @@ class TeacherService {
 			throw new Error(error.message)
 		}
 	}
+
+
+
 async  TeacherSelery({ year, month }) {
-  try {
-    const newYear = Number(year);
-    const newMonth = Number(month);
+	try {
+		const newYear = Number(year);
+		const newMonth = Number(month);
 
-    if (
-      isNaN(newYear) || isNaN(newMonth) ||
-      newYear < 2000 || newYear > 2100 ||
-      newMonth < 1 || newMonth > 12
-    ) {
-      return { success: false, message: "Yil yoki oy noto‘g‘ri kiritilgan." };
-    }
+		if (
+			isNaN(newYear) || isNaN(newMonth) ||
+			newYear < 2000 || newYear > 2100 ||
+			newMonth < 1 || newMonth > 12
+		) {
+			return { success: false, message: "Yil yoki oy noto‘g‘ri kiritilgan." };
+		}
 
-    const startOfMonth = new Date(newYear, newMonth - 1, 1);
-    const endOfMonth = new Date(newYear, newMonth, 0, 23, 59, 59);
+		const startOfMonth = new Date(newYear, newMonth - 1, 1);
+		const endOfMonth = new Date(newYear, newMonth, 0, 23, 59, 59);
 
-    const teachers = await teacherModel.find({ isAdmin: false });
-    const result = [];
+		const teachers = await teacherModel.find({ isAdmin: false });
+		const result = [];
 
-    for (const teacher of teachers) {
-      const subjectEntries = [];
+		// 💡 Versiyani aniqlash uchun yordamchi funksiya
+		const getSalaryVersion = (salaryHistory, date) => {
+			if (!Array.isArray(salaryHistory)) return null;
+			return salaryHistory
+				.filter(v => new Date(v.from) <= date)
+				.sort((a, b) => new Date(b.from) - new Date(a.from))[0] || null;
+		};
 
-      for (const subjectId of teacher.subjects) {
-        const groups = await groupModel.find({
-          teacher: teacher._id,
-          subject: subjectId
-        })
-          .populate({ path: 'students', select: 'fullName main_subjects additionalSubjects main_subject_history additional_subject_history' })
-          .populate({ path: 'subject', select: 'subjectName' });
+		for (const teacher of teachers) {
+			// 🎯 Versiyani aniqlaymiz
+			const version = getSalaryVersion(teacher.salaryHistory, endOfMonth);
 
-        const groupData = [];
+			const currentSalary = version?.salary || teacher.salary || 0;
+			const currentShare = version?.share_of_salary || teacher.share_of_salary || 0;
 
-        for (const group of groups) {
-          const teacherAbsences = await teacherattendanceModel.find({
-            teacher: teacher._id,
-            subject: subjectId,
-            group: group._id,
-            date: { $gte: startOfMonth, $lte: endOfMonth }
-          }).select('date -_id');
+			let totalHisoblanma = 0;
+			const subjectEntries = [];
 
-          const teacherAbsentDates = teacherAbsences
-            .filter(item => item.date instanceof Date && !isNaN(item.date))
-            .map(item => item.date.toISOString().split('T')[0]);
+			for (const subjectId of teacher.subjects) {
+				const groups = await groupModel.find({
+					teacher: teacher._id,
+					subject: subjectId
+				})
+					.populate({ path: 'students', select: 'fullName main_subjects additionalSubjects main_subject_history additional_subject_history createdAt' })
+					.populate({ path: 'subject', select: 'subjectName' });
 
-          const studentsInGroup = new Map();
+				const groupData = [];
 
-          group.students.forEach(student => {
-            studentsInGroup.set(student._id.toString(), student);
-          });
+				for (const group of groups) {
+					const teacherAbsences = await teacherattendanceModel.find({
+						teacher: teacher._id,
+						subject: subjectId,
+						group: group._id,
+						date: { $gte: startOfMonth, $lte: endOfMonth }
+					}).select('date -_id');
 
-          const allStudents = await studentModel.find({}).select('fullName main_subjects additionalSubjects main_subject_history additional_subject_history');
+					const teacherAbsentDates = teacherAbsences
+						.filter(item => item.date instanceof Date && !isNaN(item.date))
+						.map(item => item.date.toISOString().split('T')[0]);
 
-          for (const student of allStudents) {
-            const histories = [...(student.main_subject_history || []), ...(student.additional_subject_history || [])];
-            for (const h of histories) {
-              const isSameGroup = h.groupId?.toString() === group._id.toString();
-              const isSameTeacher = h.teacherId?.toString() === teacher._id.toString();
-              const isSameSubject = h.subjectId?.toString() === subjectId.toString();
-              if (!isSameGroup || !isSameTeacher || !isSameSubject) continue;
+					const studentsInGroup = new Map();
+					group.students.forEach(student => {
+						studentsInGroup.set(student._id.toString(), student);
+					});
 
-              const from = new Date(h.fromDate);
-              const to = h.toDate ? new Date(h.toDate) : endOfMonth;
+					const allStudents = await studentModel.find({}).select('fullName main_subjects additionalSubjects main_subject_history additional_subject_history createdAt');
 
-              if (from <= endOfMonth && to >= startOfMonth) {
-                studentsInGroup.set(student._id.toString(), student);
-              }
-            }
-          }
+					for (const student of allStudents) {
+						const histories = [...(student.main_subject_history || []), ...(student.additional_subject_history || [])];
+						for (const h of histories) {
+							const isSameGroup = h.groupId?.toString() === group._id.toString();
+							const isSameTeacher = h.teacherId?.toString() === teacher._id.toString();
+							const isSameSubject = h.subjectId?.toString() === subjectId.toString();
+							if (!isSameGroup || !isSameTeacher || !isSameSubject) continue;
 
-          const allLessonDates = [];
-          for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
-            if (d.getDay() !== 0) allLessonDates.push(new Date(d));
-          }
+							const from = new Date(h.fromDate);
+							const to = h.toDate ? new Date(h.toDate) : endOfMonth;
 
-          const studentsWithAttendance = [];
+							if (from <= endOfMonth && to >= startOfMonth) {
+								studentsInGroup.set(student._id.toString(), student);
+							}
+						}
+					}
 
-          for (const studentId of studentsInGroup.keys()) {
-            const student = studentsInGroup.get(studentId);
-            const attendanceRaw = await attandanceModel.find({
-              studentId: student._id,
-              groupId: group._id,
-              date: { $gte: startOfMonth, $lte: endOfMonth },
-            }).select('date Status score sunday -_id');
+					const allLessonDates = [];
+					for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
+						if (d.getDay() !== 0) allLessonDates.push(new Date(d));
+					}
 
-            const attendanceMap = new Map(attendanceRaw.map(a => [a.date.toISOString().split('T')[0], a]));
+					const studentsWithAttendance = [];
 
-            const history = [...(student.main_subject_history || []), ...(student.additional_subject_history || [])]
-              .find(h => h.groupId.toString() === group._id.toString() && h.subjectId.toString() === subjectId.toString() && h.teacherId.toString() === teacher._id.toString());
+					for (const studentId of studentsInGroup.keys()) {
+						const student = studentsInGroup.get(studentId);
 
-            const from = history ? new Date(history.fromDate) : startOfMonth;
-            const to = history && history.toDate ? new Date(history.toDate) : endOfMonth;
+						if (student.createdAt && new Date(student.createdAt) > endOfMonth) continue;
 
-            const attendance = [];
+						const attendanceRaw = await attandanceModel.find({
+							studentId: student._id,
+							groupId: group._id,
+							date: { $gte: startOfMonth, $lte: endOfMonth },
+						}).select('date Status score sunday -_id');
 
-            for (const d of allLessonDates) {
-              const dateStr = d.toISOString().split('T')[0];
-              if (d < from || d > to) {
-                attendance.push({ date: d, Status: 'Ishtirok etmagan', score: 0, sunday: false });
-              } else if (attendanceMap.has(dateStr)) {
-                attendance.push(attendanceMap.get(dateStr));
-              } else if (teacherAbsentDates.includes(dateStr)) {
-                attendance.push({ date: d, Status: 'Ustoz', score: 0, sunday: false });
-              } else {
-                attendance.push({ date: d, Status: 'Ishtirok etmagan', score: 0, sunday: false });
-              }
-            }
+						const attendanceMap = new Map(attendanceRaw.map(a => [a.date.toISOString().split('T')[0], a]));
 
-            const main = student.main_subjects?.find(s => s.groupId.toString() === group._id.toString());
-            const additional = student.additionalSubjects?.find(s => s.groupId.toString() === group._id.toString());
-            const price = main?.price || additional?.price || 0;
+						const history = [...(student.main_subject_history || []), ...(student.additional_subject_history || [])]
+							.find(h => h.groupId.toString() === group._id.toString() && h.subjectId.toString() === subjectId.toString() && h.teacherId.toString() === teacher._id.toString());
 
-            studentsWithAttendance.push({
-              studentId: student._id.toString(),
-              fullName: student.fullName,
-              attendance,
-              price,
-              teacherAbsentDates
-            });
-          }
+						const from = history ? new Date(history.fromDate) : startOfMonth;
+						const to = history && history.toDate ? new Date(history.toDate) : endOfMonth;
 
-          let totalDays = 0;
-          for (const s of studentsWithAttendance) {
-            const count = s.attendance.filter(a => ["Kelgan", "Kelmagan", "Ustoz"].includes(a.Status)).length;
-            if (count > totalDays) totalDays = count;
-          }
+						const attendance = [];
+						for (const d of allLessonDates) {
+							const dateStr = d.toISOString().split('T')[0];
+							if (d < from || d > to) {
+								attendance.push({ date: d, Status: 'Ishtirok etmagan', score: 0, sunday: false });
+							} else if (attendanceMap.has(dateStr)) {
+								attendance.push(attendanceMap.get(dateStr));
+							} else if (teacherAbsentDates.includes(dateStr)) {
+								attendance.push({ date: d, Status: 'Ustoz', score: 0, sunday: false });
+							} else {
+								attendance.push({ date: d, Status: 'Ishtirok etmagan', score: 0, sunday: false });
+							}
+						}
 
-          groupData.push({
-            groupId: group._id.toString(),
-            groupName: group.groupName,
-            students: studentsWithAttendance,
-            totalDays
-          });
-        }
+						const main = student.main_subjects?.find(s => s.groupId.toString() === group._id.toString());
+						const additional = student.additionalSubjects?.find(s => s.groupId.toString() === group._id.toString());
+						const price = main?.price || additional?.price || 0;
+						const ulush = price * (currentShare / 100);
 
-        if (groupData.length) {
-          subjectEntries.push({
-            subjectId: subjectId.toString(),
-            subjectName: groups[0]?.subject?.subjectName || 'Noma’lum fan',
-            groups: groupData
-          });
-        }
-      }
+						const kelganCount = attendance.filter(a => a.Status === "Kelgan").length;
+						const kelmaganCount = attendance.filter(a => a.Status === "Kelmagan").length;
+						const kelmaganKechirilgan = Math.min(2, kelmaganCount);
+						const darslarSoni = kelganCount + kelmaganKechirilgan;
+						const darsKuniSoni = attendance.filter(a => ["Kelgan", "Kelmagan", "Ustoz"].includes(a.Status)).length;
 
-      result.push({
-        teacherId: teacher._id.toString(),
-        teacherName: teacher.fullName,
-        share_of_salary: teacher.share_of_salary / 100,
-        subjects: subjectEntries
-      });
-    }
+						let hisoblanma = 0;
+						if (darsKuniSoni && darslarSoni) {
+							hisoblanma = (ulush / darsKuniSoni) * darslarSoni;
+						}
 
-    return { success: true, data: result };
+						totalHisoblanma += hisoblanma;
 
-  } catch (err) {
-    console.error(err);
-    return { success: false, message: 'Ichki xatolik yuz berdi' };
-  }
+						studentsWithAttendance.push({
+							studentId: student._id.toString(),
+							fullName: student.fullName,
+							attendance,
+							price,
+							teacherAbsentDates
+						});
+					}
+
+					let totalDays = 0;
+					for (const s of studentsWithAttendance) {
+						const count = s.attendance.filter(a => ["Kelgan", "Kelmagan", "Ustoz"].includes(a.Status)).length;
+						if (count > totalDays) totalDays = count;
+					}
+
+					groupData.push({
+						groupId: group._id.toString(),
+						groupName: group.groupName,
+						students: studentsWithAttendance,
+						totalDays
+					});
+				}
+
+				if (groupData.length) {
+					subjectEntries.push({
+						subjectId: subjectId.toString(),
+						subjectName: groups[0]?.subject?.subjectName || 'Noma’lum fan',
+						groups: groupData
+					});
+				}
+			}
+
+			result.push({
+				teacherId: teacher._id.toString(),
+				teacherName: teacher.fullName,
+				salary: currentSalary,
+				share_of_salary: currentShare / 100,
+				totalCalculated: Number((currentSalary + totalHisoblanma).toFixed(2)),
+				subjects: subjectEntries
+			});
+		}
+
+		return { success: true, data: result };
+	} catch (err) {
+		console.error(err);
+		return { success: false, message: 'Ichki xatolik yuz berdi' };
+	}
 }
+
+
+
 
 
 

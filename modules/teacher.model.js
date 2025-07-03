@@ -1,68 +1,80 @@
-const {model,Schema} = require('mongoose')
+const { model, Schema } = require('mongoose');
 
 const teacherSchema = new Schema({
-	fullName:{
-		type:String,
-		required:true
+	fullName: {
+		type: String,
+		required: true
 	},
-	date_of_birth:{
-		type:Date,
-		required:false
+	date_of_birth: {
+		type: Date
 	},
-	gender:{
-		type:String,
-		emun:['erkak','Ayol'],
-		required:false
+	gender: {
+		type: String,
+		enum: ['erkak', 'Ayol']
 	},
-	address:{
-		type:String,
-		required:false
+	address: {
+		type: String
 	},
-	qualification:{
-		type:String,
-		required:false
+	qualification: {
+		type: String
 	},
-	photo:{
-		type:String,
-		required:false
+	photo: {
+		type: String
 	},
-	phone:{
-		type:String,
-		required:false
+	phone: {
+		type: String
 	},
 	subjects: [
-		{ 
-			type:Schema.Types.ObjectId, 
-			ref: "subject" 
+		{
+			type: Schema.Types.ObjectId,
+			ref: "subject"
 		}
 	],
-	login:{
-		type:String,
-		required:true,
-		unique:true
+	login: {
+		type: String,
+		required: true,
+		unique: true
 	},
-	password:{
-		type:String,
-		required:true
+	password: {
+		type: String,
+		required: true
 	},
-	role:{
-		type:String,
-		default:1
+	role: {
+		type: String,
+		default: "1"
 	},
-	isAdmin:{
-		type:Boolean,
-		default:false
+	isAdmin: {
+		type: Boolean,
+		default: false
 	},
-	salary:{
-		type:Number,
-		default:0,
-		required:false
-	},
-	share_of_salary:{
-		type:Number,
-		default:0,
-		required:false
-	}
-})
 
-module.exports = new model('teacher',teacherSchema)
+	// Eskisi (endi ishlatilmaydi, faqat backward compatibility uchun qoldirilgan)
+	salary: {
+		type: Number,
+		default: 0
+	},
+	share_of_salary: {
+		type: Number,
+		default: 0
+	},
+
+	// ✅ YANGI: Versiyalash uchun tarixiy ma’lumotlar
+	salaryHistory: [
+		{
+			from: {
+				type: Date,
+				required: true
+			},
+			salary: {
+				type: Number,
+				required: true
+			},
+			share_of_salary: {
+				type: Number,
+				required: true
+			}
+		}
+	]
+});
+
+module.exports = new model('teacher', teacherSchema);
