@@ -8,7 +8,7 @@ const fileUpload = require('express-fileupload')
 //cron
 const runCronJob = require('./helper/corn.message')
 // Routerlarni chaqirish
-const { studentrouter, teacherrouter, applicationrouter, adsrouter, messagerouter, subjectrouter, addsubjectrouter, hostelrouter, defaultrouter, registerrouter, transportrouter, paymentrouter, attandancerouter, grouprouter, productrouter, profilerouter, roomsrouter, statistiksrouter, employerrouter,teacherattandancerouter } = require('./routes')
+const { studentrouter, teacherrouter, applicationrouter, adsrouter, messagerouter, subjectrouter, addsubjectrouter, hostelrouter, defaultrouter, registerrouter, transportrouter, paymentrouter, attandancerouter, grouprouter, productrouter, profilerouter, roomsrouter, statistiksrouter, employerrouter,teacherattandancerouter,avansrouter } = require('./routes')
 
 
 // Environment variables
@@ -48,6 +48,7 @@ app.use(fileUpload()) // Fayl yuklash middleware'ini qo'shish
 app.use('/api/statistics', statistiksrouter)
 app.use('/api/teacher-attandance', teacherattandancerouter)
 app.use('/api/student', studentrouter)
+app.use('/api/avans', avansrouter)
 app.use('/api/teacher', teacherrouter)
 app.use('/api/employer', employerrouter)
 
