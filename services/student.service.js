@@ -782,6 +782,7 @@ class StudentService {
 					select: 'groupName'
 				})
 				.populate('main_subjects.subjectId', 'subjectName')
+				.populate('main_subjects.teacherId', 'fullName')
 				.populate('additionalSubjects.subjectId', 'subjectName')
 				.populate({
 					path: 'hostel',

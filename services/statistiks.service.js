@@ -12,13 +12,9 @@ class StatistiksService {
 	async getStatistiks(data) {
 		try {
 			const student = await studentModel.find({ status: 'active' })
-			console.log(student.length)
 			const teacher = await teacherModel.find()
-			console.log(teacher.length)
 			const subject = await subjectModel.find()
-			console.log(subject.length)
 			const employer = await employerModel.find({ status: 'active' })
-			console.log(employer.length)
 			return { success: true, student: student.length, teacher: teacher.length, employer: employer.length, subject: subject.length, message: "Statistika ma'lumotlari" }
 
 
