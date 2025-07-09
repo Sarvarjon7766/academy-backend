@@ -9,6 +9,7 @@ const attandanceService = require('./attandance.service')
 const groupModel = require('../modules/group.model')
 const roomsModel = require('../modules/rooms.model')
 const GroupService = require('./group.service')
+const { ObjectId } = mongoose.Types;
 
 class StudentService {
 
@@ -128,108 +129,141 @@ class StudentService {
 	}
 
 
-	async updateMainSubjects(sId, data) {
-		try {
-			const { newsubjects, oldsubjects } = data
-			const studentId = new mongoose.Types.ObjectId(sId)
-			const now = new Date()
-			const student = await studentModel.findById(studentId).lean()
-			const updates = []
+async  updateMainSubjects(sId, data) {
+	try {
+		const { newsubjects, oldsubjects } = data;
+		const now = new Date();
 
-			for (let historyItem of student.main_subject_history) {
-				const toDateIsZero = !historyItem.toDate || historyItem.toDate === 0 || historyItem.toDate === '0'
+		// Student ID validligini tekshirish
+		if (!ObjectId.isValid(sId)) {
+			throw new Error("Noto'g'ri studentId: " + sId);
+		}
 
-				if (!toDateIsZero) continue
+		const studentId = new ObjectId(sId);
+		const student = await studentModel.findById(studentId).lean();
+		const updates = [];
 
-				const match = student.main_subjects.some(mainItem =>
-					mainItem.subjectId.toString() === historyItem.subjectId.toString() &&
-					mainItem.teacherId.toString() === historyItem.teacherId.toString() &&
-					mainItem.groupId.toString() === historyItem.groupId.toString()
-				)
+		// main_subject_history dagi toDate ni yangilash
+		for (let historyItem of student.main_subject_history) {
+			const toDateIsZero = !historyItem.toDate || historyItem.toDate === 0 || historyItem.toDate === '0';
 
-				if (match) {
-					updates.push({
-						_id: historyItem._id,
-						update: { toDate: now }
-					})
-				}
+			if (!toDateIsZero) continue;
+
+			const match = student.main_subjects.some(mainItem =>
+				mainItem.subjectId.toString() === historyItem.subjectId.toString() &&
+				mainItem.teacherId.toString() === historyItem.teacherId.toString() &&
+				mainItem.groupId.toString() === historyItem.groupId.toString()
+			);
+
+			if (match) {
+				updates.push({
+					_id: historyItem._id,
+					update: { toDate: now }
+				});
+			}
+		}
+
+		for (let item of updates) {
+			await studentModel.updateOne(
+				{ _id: studentId, "main_subject_history._id": item._id },
+				{ $set: { "main_subject_history.$.toDate": item.update.toDate } }
+			);
+		}
+
+		// Eski asosiy fanlarni tozalash
+		await studentModel.updateOne(
+			{ _id: studentId },
+			{ $set: { main_subjects: [] } }
+		);
+
+		// Yangi fanlarni ObjectId ga aylantirib qo‘shish
+		const mainSubjectsToInsert = [];
+		const mainSubjectsHistoryToInsert = [];
+
+		for (let subj of newsubjects) {
+			const { subjectId, teacherId, groupId, price } = subj;
+
+			if (![subjectId, teacherId, groupId].every(ObjectId.isValid)) {
+				throw new Error("Noto'g'ri ID (subjectId, teacherId yoki groupId): " + JSON.stringify(subj));
 			}
 
-			for (let item of updates) {
-				await studentModel.updateOne(
-					{ _id: studentId, "main_subject_history._id": item._id },
-					{ $set: { "main_subject_history.$.toDate": item.update.toDate } }
-				)
-			}
-			await studentModel.updateOne(
-				{ _id: studentId },
-				{ $set: { main_subjects: [] } }
-			)
-			const mainSubjectsToInsert = []
-			const mainSubjectsHistoryToInsert = []
+			const subjectObj = {
+				subjectId: new ObjectId(subjectId),
+				teacherId: new ObjectId(teacherId),
+				groupId: new ObjectId(groupId),
+				price: Number(price),
+			};
 
-			for (let subj of newsubjects) {
-				const { subjectId, teacherId, groupId, price } = subj
+			mainSubjectsToInsert.push(subjectObj);
+			mainSubjectsHistoryToInsert.push({
+				...subjectObj,
+				fromDate: now,
+				toDate: null
+			});
+		}
 
-				const subjectObj = {
-					subjectId: new mongoose.Types.ObjectId(subjectId),
-					teacherId: new mongoose.Types.ObjectId(teacherId),
-					groupId: new mongoose.Types.ObjectId(groupId),
-					price: Number(price),
+		await studentModel.updateOne(
+			{ _id: studentId },
+			{
+				$push: {
+					main_subjects: { $each: mainSubjectsToInsert },
+					main_subject_history: { $each: mainSubjectsHistoryToInsert }
 				}
-
-				mainSubjectsToInsert.push(subjectObj)
-				mainSubjectsHistoryToInsert.push({
-					...subjectObj,
-					fromDate: now,
-					toDate: null
-				})
 			}
-			await studentModel.updateOne(
-				{ _id: studentId },
-				{
-					$push: {
-						main_subjects: { $each: mainSubjectsToInsert },
-						main_subject_history: { $each: mainSubjectsHistoryToInsert }
-					}
-				}
-			)
-			await studentModel.updateOne(
-				{ _id: studentId },
-				{ $pull: { groups: { type: "main" } } }
-			)
-			const newGroups = newsubjects.map(subj => ({
-				group: new mongoose.Types.ObjectId(subj.groupId),
-				teacherId: new mongoose.Types.ObjectId(subj.teacherId),
+		);
+
+		// Eski "main" tipidagi guruhlarni olib tashlash
+		await studentModel.updateOne(
+			{ _id: studentId },
+			{ $pull: { groups: { type: "main" } } }
+		);
+
+		// Yangi guruhlarni "main" tipida qo‘shish
+		const newGroups = newsubjects.map(subj => {
+			if (!ObjectId.isValid(subj.groupId) || !ObjectId.isValid(subj.teacherId)) {
+				throw new Error("Group yoki Teacher ID noto‘g‘ri: " + JSON.stringify(subj));
+			}
+			return {
+				group: new ObjectId(subj.groupId),
+				teacherId: new ObjectId(subj.teacherId),
 				type: "main"
-			}))
+			};
+		});
 
-			await studentModel.updateOne(
-				{ _id: studentId },
-				{ $push: { groups: { $each: newGroups } } }
-			)
-			if (Array.isArray(oldsubjects) && oldsubjects.length > 0) {
-				const oldGroupIds = oldsubjects.map(subj => new mongoose.Types.ObjectId(subj.groupId))
+		await studentModel.updateOne(
+			{ _id: studentId },
+			{ $push: { groups: { $each: newGroups } } }
+		);
 
-				await groupModel.updateMany(
-					{ _id: { $in: oldGroupIds } },
-					{ $pull: { students: studentId } }
-				)
-			}
-			const newGroupIds = newsubjects.map(subj => new mongoose.Types.ObjectId(subj.groupId))
+		// Eski guruhlardan o‘quvchini olib tashlash
+		if (Array.isArray(oldsubjects) && oldsubjects.length > 0) {
+			const oldGroupIds = oldsubjects
+				.filter(subj => ObjectId.isValid(subj.groupId))
+				.map(subj => new ObjectId(subj.groupId));
 
 			await groupModel.updateMany(
-				{ _id: { $in: newGroupIds } },
-				{ $addToSet: { students: studentId } }
-			)
-
-			return { success: true, message: "Main subjects va tarix muvaffaqiyatli yangilandi" }
-
-		} catch (error) {
-			console.error("Xatolik:", error)
-			return { success: false, message: "Ichki xatolik yuz berdi" }
+				{ _id: { $in: oldGroupIds } },
+				{ $pull: { students: studentId } }
+			);
 		}
+
+		// Yangi guruhlarga o‘quvchini qo‘shish
+		const newGroupIds = newsubjects
+			.filter(subj => ObjectId.isValid(subj.groupId))
+			.map(subj => new ObjectId(subj.groupId));
+
+		await groupModel.updateMany(
+			{ _id: { $in: newGroupIds } },
+			{ $addToSet: { students: studentId } }
+		);
+
+		return { success: true, message: "Main subjects va tarix muvaffaqiyatli yangilandi" };
+
+	} catch (error) {
+		console.error("Xatolik:", error.message);
+		return { success: false, message: "Ichki xatolik yuz berdi" };
 	}
+}
 
 
 

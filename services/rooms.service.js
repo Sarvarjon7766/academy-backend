@@ -6,9 +6,9 @@ class RoomsService {
   async create(data) {
     try {
       const newData = {
-        roomNumber: data.number,
-        roomCapacity: data.capacity,
-        beds: Array(parseInt(data.capacity)).fill(null)
+        roomNumber: data.roomNumber,
+        roomCapacity: data.roomCapacity,
+        beds: Array(parseInt(data.roomCapacity)).fill(null)
       }
 
       console.log(newData)
