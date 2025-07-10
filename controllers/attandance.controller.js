@@ -4,10 +4,8 @@ class AttandanceController {
 	async create(req, res) {
 		try {
 			const user = req.user
-			const data = req.body
-			// console.log(data)
-			const date = new Date(Date.now()).setHours(0, 0, 0, 0)
-			const addattandance = await AttandanceService.create({ ...data, date: date })
+			const data = req.body			
+			const addattandance = await AttandanceService.create(data)
 			if (addattandance && addattandance.success) {
 				return res.status(201).json(addattandance)
 			}
@@ -33,8 +31,7 @@ class AttandanceController {
 		try {
 			const teacherid = req.user.id
 			const { groupId } = req.params
-			const date = new Date(Date.now()).setHours(0, 0, 0, 0)
-			const checking = await AttandanceService.ChekingAttandance(groupId, teacherid, date)
+			const checking = await AttandanceService.ChekingAttandance(groupId, teacherid)
 			if (checking && checking.success) {
 				return res.status(200).json(checking)
 			}

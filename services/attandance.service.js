@@ -7,10 +7,15 @@ const studentModel = require('../modules/student.model')
 class AttandanceService {
 	async create(data) {
 		try {
-			if (!data || !data.attendance || !data.gId || !data.date) {
+			if (!data || !data.attendance || !data.gId) {
 				return { success: false, message: "Noto‘g‘ri ma'lumot yuborildi!" }
 			}
-			const { attendance, gId, date } = data
+			const now = new Date()
+			const year = now.getFullYear()
+			const month = String(now.getMonth() + 1).padStart(2, '0')
+			const day = String(now.getDate()).padStart(2, '0')
+			const localDate = `${year}-${month}-${day}`
+			const { attendance, gId } = data
 			const guruhId = new mongoose.Types.ObjectId(gId?.groupId)
 			console.log(guruhId)
 			const promises = Object.keys(attendance).map(async (key) => {
@@ -23,7 +28,7 @@ class AttandanceService {
 					studentId: new mongoose.Types.ObjectId(key),
 					Status: attendance[key].attended ? "Kelgan" : "Kelmagan",
 					score: attendance[key].grade || 0, // score bo‘lmasa 0 bo‘lsin
-					date,
+					date: localDate
 				})
 			})
 			await Promise.all(promises.filter(Boolean))
@@ -63,11 +68,16 @@ class AttandanceService {
 		}
 	}
 
-	async ChekingAttandance(guruhId, teacherid, date) {
+	async ChekingAttandance(guruhId, teacherid) {
 		try {
-			if (guruhId && date) {
+			if (guruhId) {
+				const now = new Date()
+				const year = now.getFullYear()
+				const month = String(now.getMonth() + 1).padStart(2, '0')
+				const day = String(now.getDate()).padStart(2, '0')
+				const localDate = `${year}-${month}-${day}`
 				const groupId = new mongoose.Types.ObjectId(guruhId)
-				const checking = await attandanceModel.findOne({ groupId, date })
+				const checking = await attandanceModel.findOne({ groupId, date:localDate })
 				const students = await groupForStudents(groupId)
 				if (checking) {
 					return { success: false, message: "Bugun davomat olinib bo'lingan", students: students.students }
