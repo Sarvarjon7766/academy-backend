@@ -6,15 +6,16 @@ const connectDB = require('./config/mongoDB')
 const fileUpload = require('express-fileupload')
 
 //cron
-const runCronJob = require('./helper/corn.message')
+const {runCronJob,runStudentPayment} = require('./helper/corn.message')
 // Routerlarni chaqirish
-const { studentrouter, teacherrouter, applicationrouter, adsrouter, messagerouter, subjectrouter, addsubjectrouter, hostelrouter, defaultrouter, registerrouter, transportrouter, paymentrouter, attandancerouter, grouprouter, productrouter, profilerouter, roomsrouter, statistiksrouter, employerrouter,teacherattandancerouter,avansrouter,teacherpaymentrouter } = require('./routes')
+const { studentrouter, teacherrouter, applicationrouter, adsrouter, messagerouter, subjectrouter, addsubjectrouter, hostelrouter, defaultrouter, registerrouter, transportrouter, paymentrouter, attandancerouter, grouprouter, productrouter, profilerouter, roomsrouter, statistiksrouter, employerrouter,teacherattandancerouter,avansrouter,teacherpaymentrouter,studentpaymentrouter } = require('./routes')
 
 
 // Environment variables
 dotenv.config()
 connectDB()
 runCronJob()
+runStudentPayment()
 
 const app = express()
 
@@ -52,6 +53,7 @@ app.use('/api/avans', avansrouter)
 app.use('/api/teacher', teacherrouter)
 app.use('/api/employer', employerrouter)
 app.use('/api/teacher-payment', teacherpaymentrouter)
+app.use('/api/student-payment', studentpaymentrouter)
 
 app.use('/api/application', applicationrouter)
 app.use('/api/ads', adsrouter)

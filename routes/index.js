@@ -20,4 +20,5 @@ const employerrouter = require('./employer.router')
 const teacherattandancerouter = require('./teacherattandance.router')
 const avansrouter = require('./avans.router')
 const teacherpaymentrouter = require('./teacher.payment.router')
-module.exports = {addsubjectrouter,adsrouter,applicationrouter,hostelrouter,messagerouter,registerrouter,studentrouter,subjectrouter,teacherrouter,transportrouter,paymentrouter,attandancerouter,grouprouter,productrouter,defaultrouter,profilerouter,roomsrouter,statistiksrouter,employerrouter,teacherattandancerouter,avansrouter,teacherpaymentrouter}
+const studentpaymentrouter = require('./studentpayment.router')
+module.exports = {addsubjectrouter,adsrouter,applicationrouter,hostelrouter,messagerouter,registerrouter,studentrouter,subjectrouter,teacherrouter,transportrouter,paymentrouter,attandancerouter,grouprouter,productrouter,defaultrouter,profilerouter,roomsrouter,statistiksrouter,employerrouter,teacherattandancerouter,avansrouter,teacherpaymentrouter,studentpaymentrouter}

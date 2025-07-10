@@ -1,80 +1,55 @@
-const PaymentService = require('../services/payment.service')
+const StudentPaymentService = require('../services/studentpayment.service')
 
 class PaymentController {
-	async create(req, res) {
+	async checkPayment(req,res){
 		try {
-			const data = req.body
-			const payment = await PaymentService.create(data)
-			if (payment && payment.success) {
-				return res.status(201).json(payment)
+			console.log(req.query)
+			const data = await StudentPaymentService.check(req.query)
+			if(data.success){
+				res.status(200).json(data)
+			}else{
+				res.status(400).json(data)
 			}
-			return res.status(400).json(payment)
 		} catch (error) {
-			return res.status(500).json({ success: false, message: error.message })
+			res.status(500).json({success:false,message:error})
 		}
 	}
-	async getAll(req, res) {
+	async getPayments(req,res){
 		try {
-			const payment = await PaymentService.getAll()
-			if (payment && payment.success) {
-				return res.status(200).json(payment)
+			console.log(req.query)
+			const data = await StudentPaymentService.getPayments(req.query)
+			if(data.success){
+				res.status(200).json(data)
+			}else{
+				res.status(400).json(data)
 			}
-			return res.status(400).json(payment)
 		} catch (error) {
-			return res.status(500).json({ success: false, message: error.message })
+			res.status(500).json({success:false,message:error})
 		}
 	}
-	async checkPayment(req, res) {
+	async paymentHistory(req,res){
 		try {
-			const payment = await PaymentService.checkPayment(req.query)
-			if (payment && payment.success) {
-				return res.status(200).json(payment)
+			const data = await StudentPaymentService.paymentHistory(req.query)
+			if(data.success){
+				res.status(200).json(data)
+			}else{
+				res.status(400).json(data)
 			}
-			return res.status(400).json(payment)
 		} catch (error) {
-			return res.status(500).json({ success: false, message: error.message })
+			res.status(500).json({success:false,message:error})
 		}
 	}
-	async MonthlyCheck(req, res) {
-		try {
-			const payment = await PaymentService.MonthlyCheck(req.query)
-			if (payment && payment.success) {
-				return res.status(200).json(payment)
-			}
-			return res.status(400).json(payment)
-		} catch (error) {
-			return res.status(500).json({ success: false, message: error.message })
-		}
-	}
-	async Pay(req, res) {
-		try {
-			const payment = await PaymentService.Pay(req.body)
-			if (payment && payment.success) {
-				return res.status(200).json(payment)
-			}
-			return res.status(400).json(payment)
-		} catch (error) {
-			return res.status(500).json({ success: false, message: error.message })
-		}
-	}
-	async Calculate(req, res) {
-		try {
-			const payment = await PaymentService.Calculate(req.body)
-			if (payment && payment.success) {
-				return res.status(200).json(payment)
-			}
-			return res.status(400).json(payment)
-		} catch (error) {
-			return res.status(500).json({ success: false, message: error.message })
-		}
-	}
-	async Balance(req, res) {
+	async Pay(req,res){
 		try {
 			console.log(req.body)
-				return res.status(200).json({success:true,message:"Ok"})
-
+			const data = await StudentPaymentService.Pay(req.body)
+			if(data.success){
+				res.status(200).json(data)
+			}else{
+				res.status(400).json(data)
+			}
 		} catch (error) {
-			return res.status(500).json({ success: false, message: error.message })
+			res.status(500).json({success:false,message:error})
 		}
 	}
 }
