@@ -86,10 +86,54 @@ class StudentPaymentService {
 			return { success: false, message: "Xatolik yuz berdi" }
 		}
 	}
+	async resgistratationPaymentHistory(data) {
+		try {
+			console.log(data)
+			if (!data?.student || !data?.amount_due) {
+				return { success: false, message: "Kerakli ma'lumotlar to‘liq emas" }
+			}
+
+			const now = new Date()
+			const year = now.getFullYear()
+			const month = now.getMonth() + 1
+
+			// Studentni alohida o‘zgaruvchiga ajratamiz
+			const studentId = data.student
+
+			// Avval mavjud to‘lov yozuvini qidiramiz
+			const payment = await studentpaymentModel.findOne({
+				student: studentId,
+				year,
+				month,
+			})
+
+			// Agar mavjud bo‘lsa - update
+			if (payment) {
+				payment.amount_due = data.amount_due
+				await payment.save()
+				return { success: true, message: "To'lov yangilandi", payment }
+			}
+
+			// Aks holda - yangi yozuv yaratamiz
+			const newPayment = await studentpaymentModel.create({
+				student: studentId,
+				amount_due: data.amount_due,
+				amount_paid: data.amount_paid,
+				year,
+				month,
+			})
+
+			return { success: true, message: "Yangi to‘lov yaratildi", payment: newPayment }
+		} catch (error) {
+			console.error(error)
+			return { success: false, message: "Xatolik yuz berdi" }
+		}
+	}
+
 	async paymentHistory(data) {
 		try {
 			const payment = data.payment._id
-			const paymentlogs = await studentPaymentTransactionModel.find({payment})
+			const paymentlogs = await studentPaymentTransactionModel.find({ payment })
 			if (paymentlogs) {
 				return { success: true, message: "To'lov hisobotlari", paymentlogs }
 			} else {

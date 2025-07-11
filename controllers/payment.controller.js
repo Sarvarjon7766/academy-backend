@@ -14,6 +14,18 @@ class PaymentController {
 			res.status(500).json({success:false,message:error})
 		}
 	}
+	async resgistratationPaymentHistory(req,res){
+		try {
+			const data = await StudentPaymentService.resgistratationPaymentHistory(req.body)
+			if(data.success){
+				res.status(200).json(data)
+			}else{
+				res.status(400).json(data)
+			}
+		} catch (error) {
+			res.status(500).json({success:false,message:error})
+		}
+	}
 	async getPayments(req,res){
 		try {
 			console.log(req.query)

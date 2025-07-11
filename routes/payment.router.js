@@ -1,5 +1,5 @@
 const express = require('express')
-const {checkPayment,Pay,getPayments,paymentHistory} = require('../controllers/payment.controller')
+const {checkPayment,Pay,getPayments,paymentHistory,resgistratationPaymentHistory} = require('../controllers/payment.controller')
 const router = express.Router()
 
 
@@ -7,6 +7,7 @@ const router = express.Router()
 router.get('/check',checkPayment)
 router.get('/getPaymants',getPayments)
 router.get('/history',paymentHistory)
+router.post('/register-history',resgistratationPaymentHistory)
 router.post('/pay',Pay)
 
 
