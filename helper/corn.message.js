@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const {deleteOldMessages} = require('./message.delete'); 
-const {paymentCreate} = require('../services/studentpayment.service')
+const {paymentCreate,MonthlyBill} = require('../services/studentpayment.service')
 
 const runCronJob = () => {
   cron.schedule('0 * * * *', async () => {
@@ -26,7 +26,34 @@ const runStudentPayment = () => {
   })
 }
 
+const runMonthlyBillCron = () => {
+  // Har oyning 28–31 kunlari 22:00 da ishga tushadi
+  cron.schedule('0 22 28-31 * *', async () => {
+    try {
+      const now = new Date();
+      const today = now.getDate();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+
+      // Hozirgi oydagi oxirgi kunni hisoblab olamiz
+      const lastDay = new Date(year, month, 0).getDate();
+
+      // Agar bugungi sana oxirgi kunga teng bo‘lsa, MonthlyBill ishga tushadi
+      if (today === lastDay) {
+        console.log(`[CRON] ${year}-${month}-${today} - Oxirgi kun. MonthlyBill boshlanmoqda...`);
+        const result = await MonthlyBill();
+        console.log(`[CRON] MonthlyBill natija:`, result.message);
+      } else {
+        console.log(`[CRON] ${year}-${month}-${today} - Bu oxirgi kun emas, o'tkazildi.`);
+      }
+    } catch (error) {
+      console.error('[CRON] MonthlyBill bajarishda xatolik:', error.message);
+    }
+  });
+};
+
 module.exports = {
   runCronJob,
-  runStudentPayment
+  runStudentPayment,
+  runMonthlyBillCron
 };

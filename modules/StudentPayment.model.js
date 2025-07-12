@@ -1,4 +1,3 @@
-// studentpayment.model.js
 const { Schema, model } = require('mongoose');
 
 const studentPaymentSchema = new Schema({
@@ -8,6 +7,7 @@ const studentPaymentSchema = new Schema({
   amount_due: { type: Number, required: true },
   amount_paid: { type: Number, default: 0 },
   isPaid: { type: Boolean, default: false },
+  balance: { type: Number, default: 0 }, // ✅ Qo‘shilgan qoldiq
   details: [{
     type: { type: String, enum: ['subject', 'hostel', 'transport', 'product'], required: true },
     label: { type: String, required: true },

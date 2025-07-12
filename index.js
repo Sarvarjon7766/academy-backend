@@ -6,7 +6,7 @@ const connectDB = require('./config/mongoDB')
 const fileUpload = require('express-fileupload')
 
 //cron
-const {runCronJob,runStudentPayment} = require('./helper/corn.message')
+const {runCronJob,runStudentPayment,runMonthlyBillCron} = require('./helper/corn.message')
 // Routerlarni chaqirish
 const { studentrouter, teacherrouter, applicationrouter, adsrouter, messagerouter, subjectrouter, addsubjectrouter, hostelrouter, defaultrouter, registerrouter, transportrouter, paymentrouter, attandancerouter, grouprouter, productrouter, profilerouter, roomsrouter, statistiksrouter, employerrouter,teacherattandancerouter,avansrouter,teacherpaymentrouter,studentpaymentrouter } = require('./routes')
 
@@ -16,6 +16,7 @@ dotenv.config()
 connectDB()
 runCronJob()
 runStudentPayment()
+runMonthlyBillCron()
 
 const app = express()
 
