@@ -8,11 +8,12 @@ const teacherModel = require('../modules/teacher.model')
 
 
 
+
 class StatistiksService {
 	async getStatistiks(data) {
 		try {
 			const student = await studentModel.find({ status: 'active' })
-			const teacher = await teacherModel.find({isAdmin:false})
+			const teacher = await teacherModel.find({ isAdmin: false })
 			const subject = await subjectModel.find()
 			const employer = await employerModel.find({ status: 'active' })
 			return { success: true, student: student.length, teacher: teacher.length, employer: employer.length, subject: subject.length, message: "Statistika ma'lumotlari" }
@@ -112,20 +113,89 @@ class StatistiksService {
 			}
 		}
 	}
-	async InMonth() {
-		try {
-			const now = new Date()
-			const year = now.getFullYear()
-			const month = now.getMonth() + 1
-			const students = studentModel.find()
-		} catch (error) {
-			console.error("Xatolik:", error)
-			return {
-				success: false,
-				message: "Ichki xatolik yuz berdi"
-			}
-		}
-	}
+	async InMonth(user) {
+  try {
+    const teacherId = user.id;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-based index
+
+    // 1. Ustozga tegishli guruhlar
+    const groups = await groupModel.find({ teacher: teacherId });
+    const groupIds = groups.map(group => group._id);
+
+    // 2. Hozirgi oydagi barcha qatnashuvlar
+    const attendances = await attandanceModel.find({
+      groupId: { $in: groupIds },
+      date: {
+        $gte: new Date(year, month, 1),
+        $lt: new Date(year, month + 1, 1)
+      }
+    });
+
+    // 3. Talaba IDlarini yig'ish
+    let allStudentIds = [];
+    groups.forEach(group => {
+      if (Array.isArray(group.students)) {
+        allStudentIds = allStudentIds.concat(group.students);
+      }
+    });
+    const uniqueStudentIds = [...new Set(allStudentIds.map(id => id.toString()))];
+
+    // 4. Umumiy o'rtacha baho va qatnashish foizi hisoblash
+    const studentScores = {};
+    const studentAttended = {};
+    const studentTotal = {};
+
+    attendances.forEach(att => {
+      const sid = att.studentId.toString();
+      studentScores[sid] = (studentScores[sid] || 0) + (att.score || 0);
+      studentTotal[sid] = (studentTotal[sid] || 0) + 1;
+      if (att.status === "Kelgan") {
+        studentAttended[sid] = (studentAttended[sid] || 0) + 1;
+      }
+    });
+
+    const studentCount = Object.keys(studentScores).length;
+
+    const totalAvgScore =
+      studentCount > 0
+        ? Object.values(studentScores).reduce((a, b) => a + b, 0) / studentCount
+        : 0;
+
+    const totalAvgAttendance =
+      studentCount > 0
+        ? Object.keys(studentTotal).reduce((acc, sid) => {
+            const attended = studentAttended[sid] || 0;
+            const total = studentTotal[sid] || 1;
+            return acc + (attended / total) * 100;
+          }, 0) / studentCount
+        : 0;
+
+    // 5. Fanlar soni
+    const teacher = await teacherModel.findById(teacherId);
+    const subjectCount = teacher?.subjects?.length || 0;
+
+    // 6. Yakuniy natija
+    return {
+      success: true,
+      groups: groups.length,
+      students: uniqueStudentIds.length,
+      subjects: subjectCount,
+      score: totalAvgScore.toFixed(1),
+      attandances: totalAvgAttendance.toFixed(1)
+    };
+
+  } catch (error) {
+    console.error("Xatolik:", error);
+    return {
+      success: false,
+      message: "Ichki xatolik yuz berdi"
+    };
+  }
+}
+
+
 
 }
 

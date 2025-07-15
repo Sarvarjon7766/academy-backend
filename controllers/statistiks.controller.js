@@ -25,6 +25,7 @@ class StatistiksController {
 	}
 	async TeacherStatistiks(req, res) {
 		try {
+			console.log(req.user)
 			console.log(req.query)
 			const studentData = await StatistiksService.TeacherStatistiks(req.query)
 			if (studentData.success) {
@@ -37,7 +38,7 @@ class StatistiksController {
 	}
 	async InMonth(req, res) {
 		try {
-			const studentData = await StatistiksService.InMonth()
+			const studentData = await StatistiksService.InMonth(req.user)
 			if (studentData.success) {
 				return res.status(200).json(studentData)
 			}
