@@ -10,7 +10,7 @@ class Profile{
 			const id = new mongoose.Types.ObjectId(user.id)
 			console.log(user)
 			if(user.role == 1){
-				const teacher = await teacherModel.findOne({_id:id}).select("fullName address phone role") 
+				const teacher = await teacherModel.findOne({_id:id}).select("fullName address phone role isAdmin") 
 				if(teacher){
 					return res.status(200).json({success:true,user:teacher})
 				}
