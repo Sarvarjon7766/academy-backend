@@ -3,7 +3,8 @@ const registerModel = require('../modules/register.model')
 const jwt = require('jsonwebtoken')
 class RegisterService{
 	async create(data){
-		try {			
+		try {	
+
 			const login = data.login
 			const exsistUser = await registerModel.findOne({login})
 			
@@ -74,7 +75,8 @@ class RegisterService{
 	}
 	async getAll(){
 		try {
-			const register = await registerModel.find()
+			const register = await registerModel.find({isActive:true})
+			console.log(register)
 			if(register){
 				return {success:true,register,message:"Foydalauvchilar"}
 			}

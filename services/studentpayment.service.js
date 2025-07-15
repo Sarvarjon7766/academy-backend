@@ -254,7 +254,8 @@ class StudentPaymentService {
 		try {
 			const payments = await studentpaymentModel.find({
 				year: data.year,
-				month: data.month
+				month: data.month,
+				isActive:'active'
 			}).populate('student', 'fullName address phone')
 
 			if (payments) {

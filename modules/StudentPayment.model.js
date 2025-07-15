@@ -8,6 +8,11 @@ const studentPaymentSchema = new Schema({
   amount_paid: { type: Number, default: 0 },
   isPaid: { type: Boolean, default: false },
   balance: { type: Number, default: 0 }, // ✅ Qo‘shilgan qoldiq
+  isActive:{
+    type:String,
+    enum:['active','archived'],
+    default:'active'
+  },
   details: [{
     type: { type: String, enum: ['subject', 'hostel', 'transport', 'product'], required: true },
     label: { type: String, required: true },

@@ -9,7 +9,8 @@ const attandanceService = require('./attandance.service')
 const groupModel = require('../modules/group.model')
 const roomsModel = require('../modules/rooms.model')
 const GroupService = require('./group.service')
-const { ObjectId } = mongoose.Types;
+studentpaymentModel = require('../modules/StudentPayment.model')
+const { ObjectId } = mongoose.Types
 
 class StudentService {
 
@@ -129,141 +130,141 @@ class StudentService {
 	}
 
 
-async  updateMainSubjects(sId, data) {
-	try {
-		const { newsubjects, oldsubjects } = data;
-		const now = new Date();
+	async updateMainSubjects(sId, data) {
+		try {
+			const { newsubjects, oldsubjects } = data
+			const now = new Date()
 
-		// Student ID validligini tekshirish
-		if (!ObjectId.isValid(sId)) {
-			throw new Error("Noto'g'ri studentId: " + sId);
-		}
-
-		const studentId = new ObjectId(sId);
-		const student = await studentModel.findById(studentId).lean();
-		const updates = [];
-
-		// main_subject_history dagi toDate ni yangilash
-		for (let historyItem of student.main_subject_history) {
-			const toDateIsZero = !historyItem.toDate || historyItem.toDate === 0 || historyItem.toDate === '0';
-
-			if (!toDateIsZero) continue;
-
-			const match = student.main_subjects.some(mainItem =>
-				mainItem.subjectId.toString() === historyItem.subjectId.toString() &&
-				mainItem.teacherId.toString() === historyItem.teacherId.toString() &&
-				mainItem.groupId.toString() === historyItem.groupId.toString()
-			);
-
-			if (match) {
-				updates.push({
-					_id: historyItem._id,
-					update: { toDate: now }
-				});
-			}
-		}
-
-		for (let item of updates) {
-			await studentModel.updateOne(
-				{ _id: studentId, "main_subject_history._id": item._id },
-				{ $set: { "main_subject_history.$.toDate": item.update.toDate } }
-			);
-		}
-
-		// Eski asosiy fanlarni tozalash
-		await studentModel.updateOne(
-			{ _id: studentId },
-			{ $set: { main_subjects: [] } }
-		);
-
-		// Yangi fanlarni ObjectId ga aylantirib qo‘shish
-		const mainSubjectsToInsert = [];
-		const mainSubjectsHistoryToInsert = [];
-
-		for (let subj of newsubjects) {
-			const { subjectId, teacherId, groupId, price } = subj;
-
-			if (![subjectId, teacherId, groupId].every(ObjectId.isValid)) {
-				throw new Error("Noto'g'ri ID (subjectId, teacherId yoki groupId): " + JSON.stringify(subj));
+			// Student ID validligini tekshirish
+			if (!ObjectId.isValid(sId)) {
+				throw new Error("Noto'g'ri studentId: " + sId)
 			}
 
-			const subjectObj = {
-				subjectId: new ObjectId(subjectId),
-				teacherId: new ObjectId(teacherId),
-				groupId: new ObjectId(groupId),
-				price: Number(price),
-			};
+			const studentId = new ObjectId(sId)
+			const student = await studentModel.findById(studentId).lean()
+			const updates = []
 
-			mainSubjectsToInsert.push(subjectObj);
-			mainSubjectsHistoryToInsert.push({
-				...subjectObj,
-				fromDate: now,
-				toDate: null
-			});
-		}
+			// main_subject_history dagi toDate ni yangilash
+			for (let historyItem of student.main_subject_history) {
+				const toDateIsZero = !historyItem.toDate || historyItem.toDate === 0 || historyItem.toDate === '0'
 
-		await studentModel.updateOne(
-			{ _id: studentId },
-			{
-				$push: {
-					main_subjects: { $each: mainSubjectsToInsert },
-					main_subject_history: { $each: mainSubjectsHistoryToInsert }
+				if (!toDateIsZero) continue
+
+				const match = student.main_subjects.some(mainItem =>
+					mainItem.subjectId.toString() === historyItem.subjectId.toString() &&
+					mainItem.teacherId.toString() === historyItem.teacherId.toString() &&
+					mainItem.groupId.toString() === historyItem.groupId.toString()
+				)
+
+				if (match) {
+					updates.push({
+						_id: historyItem._id,
+						update: { toDate: now }
+					})
 				}
 			}
-		);
 
-		// Eski "main" tipidagi guruhlarni olib tashlash
-		await studentModel.updateOne(
-			{ _id: studentId },
-			{ $pull: { groups: { type: "main" } } }
-		);
-
-		// Yangi guruhlarni "main" tipida qo‘shish
-		const newGroups = newsubjects.map(subj => {
-			if (!ObjectId.isValid(subj.groupId) || !ObjectId.isValid(subj.teacherId)) {
-				throw new Error("Group yoki Teacher ID noto‘g‘ri: " + JSON.stringify(subj));
+			for (let item of updates) {
+				await studentModel.updateOne(
+					{ _id: studentId, "main_subject_history._id": item._id },
+					{ $set: { "main_subject_history.$.toDate": item.update.toDate } }
+				)
 			}
-			return {
-				group: new ObjectId(subj.groupId),
-				teacherId: new ObjectId(subj.teacherId),
-				type: "main"
-			};
-		});
 
-		await studentModel.updateOne(
-			{ _id: studentId },
-			{ $push: { groups: { $each: newGroups } } }
-		);
+			// Eski asosiy fanlarni tozalash
+			await studentModel.updateOne(
+				{ _id: studentId },
+				{ $set: { main_subjects: [] } }
+			)
 
-		// Eski guruhlardan o‘quvchini olib tashlash
-		if (Array.isArray(oldsubjects) && oldsubjects.length > 0) {
-			const oldGroupIds = oldsubjects
+			// Yangi fanlarni ObjectId ga aylantirib qo‘shish
+			const mainSubjectsToInsert = []
+			const mainSubjectsHistoryToInsert = []
+
+			for (let subj of newsubjects) {
+				const { subjectId, teacherId, groupId, price } = subj
+
+				if (![subjectId, teacherId, groupId].every(ObjectId.isValid)) {
+					throw new Error("Noto'g'ri ID (subjectId, teacherId yoki groupId): " + JSON.stringify(subj))
+				}
+
+				const subjectObj = {
+					subjectId: new ObjectId(subjectId),
+					teacherId: new ObjectId(teacherId),
+					groupId: new ObjectId(groupId),
+					price: Number(price),
+				}
+
+				mainSubjectsToInsert.push(subjectObj)
+				mainSubjectsHistoryToInsert.push({
+					...subjectObj,
+					fromDate: now,
+					toDate: null
+				})
+			}
+
+			await studentModel.updateOne(
+				{ _id: studentId },
+				{
+					$push: {
+						main_subjects: { $each: mainSubjectsToInsert },
+						main_subject_history: { $each: mainSubjectsHistoryToInsert }
+					}
+				}
+			)
+
+			// Eski "main" tipidagi guruhlarni olib tashlash
+			await studentModel.updateOne(
+				{ _id: studentId },
+				{ $pull: { groups: { type: "main" } } }
+			)
+
+			// Yangi guruhlarni "main" tipida qo‘shish
+			const newGroups = newsubjects.map(subj => {
+				if (!ObjectId.isValid(subj.groupId) || !ObjectId.isValid(subj.teacherId)) {
+					throw new Error("Group yoki Teacher ID noto‘g‘ri: " + JSON.stringify(subj))
+				}
+				return {
+					group: new ObjectId(subj.groupId),
+					teacherId: new ObjectId(subj.teacherId),
+					type: "main"
+				}
+			})
+
+			await studentModel.updateOne(
+				{ _id: studentId },
+				{ $push: { groups: { $each: newGroups } } }
+			)
+
+			// Eski guruhlardan o‘quvchini olib tashlash
+			if (Array.isArray(oldsubjects) && oldsubjects.length > 0) {
+				const oldGroupIds = oldsubjects
+					.filter(subj => ObjectId.isValid(subj.groupId))
+					.map(subj => new ObjectId(subj.groupId))
+
+				await groupModel.updateMany(
+					{ _id: { $in: oldGroupIds } },
+					{ $pull: { students: studentId } }
+				)
+			}
+
+			// Yangi guruhlarga o‘quvchini qo‘shish
+			const newGroupIds = newsubjects
 				.filter(subj => ObjectId.isValid(subj.groupId))
-				.map(subj => new ObjectId(subj.groupId));
+				.map(subj => new ObjectId(subj.groupId))
 
 			await groupModel.updateMany(
-				{ _id: { $in: oldGroupIds } },
-				{ $pull: { students: studentId } }
-			);
+				{ _id: { $in: newGroupIds } },
+				{ $addToSet: { students: studentId } }
+			)
+
+			return { success: true, message: "Main subjects va tarix muvaffaqiyatli yangilandi" }
+
+		} catch (error) {
+			console.error("Xatolik:", error.message)
+			return { success: false, message: "Ichki xatolik yuz berdi" }
 		}
-
-		// Yangi guruhlarga o‘quvchini qo‘shish
-		const newGroupIds = newsubjects
-			.filter(subj => ObjectId.isValid(subj.groupId))
-			.map(subj => new ObjectId(subj.groupId));
-
-		await groupModel.updateMany(
-			{ _id: { $in: newGroupIds } },
-			{ $addToSet: { students: studentId } }
-		);
-
-		return { success: true, message: "Main subjects va tarix muvaffaqiyatli yangilandi" };
-
-	} catch (error) {
-		console.error("Xatolik:", error.message);
-		return { success: false, message: "Ichki xatolik yuz berdi" };
 	}
-}
 
 
 
@@ -947,58 +948,67 @@ async  updateMainSubjects(sId, data) {
 			return { success: false, message: 'O‘chirishda xatolik yuz berdi' }
 		}
 	}
-	async  StudentArchived(id) {
-	try {
-		// Talabani topish
-		const student = await studentModel.findById(id);
-		if (!student) {
-			return { success: false, message: 'Talaba topilmadi' };
-		}
 
-		// Status va asosiy maydonlarni tozalash
-		student.status = 'archived';
-		student.hostel = null;
-		student.product = null;
-		student.transport = null;
-
-		const now = new Date();
-
-		// Helper: berilgan history massivida toDate null bo‘lsa, hozirgi vaqtni yozish
-		const updateToDateIfNull = (history) => {
-			if (Array.isArray(history)) {
-				history.forEach(item => {
-					if (!item.toDate) {
-						item.toDate = now;
-					}
-				});
+	async StudentArchived(id) {
+		try {
+			// Talabani topish
+			const student = await studentModel.findById(id)
+			if (!student) {
+				return { success: false, message: 'Talaba topilmadi' }
 			}
-		};
 
-		// Barcha tarixiy massivlarni tekshirish
-		updateToDateIfNull(student.main_subject_history);
-		updateToDateIfNull(student.additional_subject_history);
-		updateToDateIfNull(student.hostel_history);
-		updateToDateIfNull(student.product_history);
-		updateToDateIfNull(student.transport_history);
+			// Status va asosiy maydonlarni tozalash
+			student.status = 'archived'
+			student.hostel = null
+			student.product = null
+			student.transport = null
 
-		// Guruhlardan chiqarish
-		const removeResult = await GroupService.StudentRemoved(id);
-		console.log('Guruhlardan chiqarish natijasi:', removeResult);
+			const now = new Date()
 
-		// Saqlash
-		await student.save();
+			// Helper: berilgan history massivida toDate null bo‘lsa, hozirgi vaqtni yozish
+			const updateToDateIfNull = (history) => {
+				if (Array.isArray(history)) {
+					history.forEach(item => {
+						if (!item.toDate) {
+							item.toDate = now
+						}
+					})
+				}
+			}
 
-		return {
-			success: true,
-			message: "Talaba arxivga qo‘shildi",
-			student
-		};
+			// Barcha tarixiy massivlarni tekshirish
+			updateToDateIfNull(student.main_subject_history)
+			updateToDateIfNull(student.additional_subject_history)
+			updateToDateIfNull(student.hostel_history)
+			updateToDateIfNull(student.product_history)
+			updateToDateIfNull(student.transport_history)
 
-	} catch (error) {
-		console.error('Arxivlashda xatolik:', error.message);
-		return { success: false, message: 'Arxivlashda xatolik yuz berdi' };
+			// Guruhlardan chiqarish
+			const removeResult = await GroupService.StudentRemoved(id)
+			console.log('Guruhlardan chiqarish natijasi:', removeResult)
+
+			// ✅ Talabaga tegishli barcha paymentlar isActive: 'archived' qilish
+			const archivedPayments = await studentpaymentModel.updateMany(
+				{ student: id },
+				{ $set: { isActive: 'archived' } }
+			)
+			console.log(`Arxivga o‘tgan to‘lovlar soni: ${archivedPayments.modifiedCount}`)
+
+			// Saqlash
+			await student.save()
+
+			return {
+				success: true,
+				message: "Talaba arxivga qo‘shildi",
+				student
+			}
+
+		} catch (error) {
+			console.error('Arxivlashda xatolik:', error.message)
+			return { success: false, message: 'Arxivlashda xatolik yuz berdi' }
+		}
 	}
-}
+
 
 
 
