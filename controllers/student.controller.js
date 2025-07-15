@@ -219,6 +219,18 @@ class StudentController {
 			res.status(500).json({ message: error, success: false })
 		}
 	}
+	async getAllfull(req, res) {
+		try {
+			const student = await studentService.getAllfull()
+			if (student.success) {
+				res.status(200).json({ success: true, students: student.exsistStudents })
+			} else {
+				res.status(404).json({ success: false, message: student.message })
+			}
+		} catch (error) {
+			res.status(500).json({ message: error, success: false })
+		}
+	}
 	async getName(req, res) {
 		try {
 			const { students } = req.body

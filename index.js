@@ -6,9 +6,9 @@ const connectDB = require('./config/mongoDB')
 const fileUpload = require('express-fileupload')
 
 //cron
-const {runCronJob,runStudentPayment,runMonthlyBillCron} = require('./helper/corn.message')
+const { runCronJob, runStudentPayment, runMonthlyBillCron } = require('./helper/corn.message')
 // Routerlarni chaqirish
-const { studentrouter, teacherrouter, applicationrouter, adsrouter, messagerouter, subjectrouter, addsubjectrouter, hostelrouter, defaultrouter, registerrouter, transportrouter, paymentrouter, attandancerouter, grouprouter, productrouter, profilerouter, roomsrouter, statistiksrouter, employerrouter,teacherattandancerouter,avansrouter,teacherpaymentrouter,studentpaymentrouter } = require('./routes')
+const { studentrouter, teacherrouter, applicationrouter, adsrouter, messagerouter, subjectrouter, addsubjectrouter, hostelrouter, defaultrouter, registerrouter, transportrouter, paymentrouter, attandancerouter, grouprouter, productrouter, profilerouter, roomsrouter, statistiksrouter, employerrouter, teacherattandancerouter, avansrouter, teacherpaymentrouter, studentpaymentrouter } = require('./routes')
 
 
 // Environment variables
@@ -37,7 +37,7 @@ app.use(cors(corsOptions))
 // app.use(cors({
 //   origin: true,
 //   credentials: true
-// }));
+// }))
 app.use('/static', express.static('static'))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())

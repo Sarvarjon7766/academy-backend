@@ -846,6 +846,46 @@ async  updateMainSubjects(sId, data) {
 			throw new Error(error.message)
 		}
 	}
+	async getAllfull() {
+		try {
+			const exsistStudents = await studentModel
+				.find()
+				.populate('groups.teacherId', 'fullName')
+				.populate({
+					path: 'groups.group',
+					select: 'groupName'
+				})
+				.populate('main_subjects.subjectId', 'subjectName')
+				.populate('main_subjects.teacherId', 'fullName')
+				.populate('additionalSubjects.subjectId', 'subjectName')
+				.populate({
+					path: 'hostel',
+					select: 'hostelName hostelPrice',
+					options: { strictPopulate: false }, // optional
+				})
+				.populate({
+					path: 'product',
+					select: 'productName productPrice',
+					options: { strictPopulate: false },
+				})
+				.populate({
+					path: 'transport',
+					select: 'transportName transportPrice',
+					options: { strictPopulate: false },
+				})
+
+
+
+			if (!exsistStudents || exsistStudents.length === 0) {
+				return { success: false, message: 'Foydalanuvchilar topilmadi' }
+			}
+
+			return { success: true, exsistStudents }
+		} catch (error) {
+			console.error('Xatolik:', error)
+			throw new Error(error.message)
+		}
+	}
 
 
 	async getOne(id) {

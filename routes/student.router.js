@@ -1,5 +1,5 @@
 const express = require('express')
-const {login,create,getAll,getName,createPersonal,updatePersonal,addMainSubjects,updateMainSubjects,addAdditionalSub,UpdateAdditionalSub,studentSubjects,AddMonthlyPayment,updateOtherCost,getSunday,getOne,MainSubject,MainHistory,AdditionalSubject,StudentDelete,StudentArchived} = require('../controllers/student.controller')
+const {login,create,getAll,getName,createPersonal,updatePersonal,addMainSubjects,updateMainSubjects,addAdditionalSub,UpdateAdditionalSub,studentSubjects,AddMonthlyPayment,updateOtherCost,getSunday,getOne,MainSubject,MainHistory,AdditionalSubject,StudentDelete,StudentArchived,getAllfull} = require('../controllers/student.controller')
 const uploadFile = require('../middleware/upload');
 const router = express.Router()
 
@@ -20,6 +20,7 @@ router.get('/student-subjects/:studentId',studentSubjects)
 router.get('/student-subjects/:studentId',studentSubjects)
 router.get('/getSunday',getSunday)
 router.get('/getAll',getAll)
+router.get('/getAllfull',getAllfull)
 router.get('/getOne/:id',getOne)
 router.get('/getName',getName)
 

@@ -12,7 +12,7 @@ class StatistiksService {
 	async getStatistiks(data) {
 		try {
 			const student = await studentModel.find({ status: 'active' })
-			const teacher = await teacherModel.find()
+			const teacher = await teacherModel.find({isAdmin:false})
 			const subject = await subjectModel.find()
 			const employer = await employerModel.find({ status: 'active' })
 			return { success: true, student: student.length, teacher: teacher.length, employer: employer.length, subject: subject.length, message: "Statistika ma'lumotlari" }
@@ -104,6 +104,20 @@ class StatistiksService {
 				data: result
 			}
 
+		} catch (error) {
+			console.error("Xatolik:", error)
+			return {
+				success: false,
+				message: "Ichki xatolik yuz berdi"
+			}
+		}
+	}
+	async InMonth() {
+		try {
+			const now = new Date()
+			const year = now.getFullYear()
+			const month = now.getMonth() + 1
+			const students = studentModel.find()
 		} catch (error) {
 			console.error("Xatolik:", error)
 			return {

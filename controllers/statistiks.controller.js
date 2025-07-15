@@ -35,5 +35,16 @@ class StatistiksController {
 			res.status(500).json({ message: error, success: false })
 		}
 	}
+	async InMonth(req, res) {
+		try {
+			const studentData = await StatistiksService.InMonth()
+			if (studentData.success) {
+				return res.status(200).json(studentData)
+			}
+			return res.status(404).json({ studentData })
+		} catch (error) {
+			res.status(500).json({ message: error, success: false })
+		}
+	}
 }
 module.exports = new StatistiksController()
